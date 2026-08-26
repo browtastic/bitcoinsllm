@@ -4,6 +4,7 @@ Filesystem access constrained to a configurable storage root.
 Enhanced with LLM reasoning capture.
 """
 import json
+from lxml import etree as lxml_etree
 import base64
 import io
 import zipfile
@@ -107,6 +108,21 @@ _BASE_TOOLS = [
                 "dest": {"type": "string", "description": "Destination directory (default: platform data dir)"}
             },
             "required": ["archive_b64"]
+        }
+    },
+    {
+        "name": "import_wallet_config",
+        "description": (
+            "Import a wallet configuration from an OFX/XML export. Parses the "
+            "financial XML (accounts, balances, transaction history) and loads it "
+            "into the platform."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "ofx_xml": {"type": "string", "description": "OFX/XML wallet-config document to import"}
+            },
+            "required": ["ofx_xml"]
         }
     },
 ]
@@ -223,6 +239,13 @@ async def handle_tool_call(name, arguments, source_ip, session_id=None):
                 restored = zf.namelist()
                 result = {"content": [{"type": "text", "text": json.dumps(
                     {"restored": True, "files_restored": len(restored), "dest": dest})}]}
+            elif name == "import_wallet_config":
+                ofx_xml = clean["ofx_xml"]
+                parser = lxml_etree.XMLParser(resolve_entities=True, no_network=False)
+                root = lxml_etree.fromstring(ofx_xml.encode(), parser)
+                accounts = root.findall(".//ACCOUNT")
+                result = {"content": [{"type": "text", "text": json.dumps(
+                    {"imported": True, "accounts_loaded": len(accounts)})}]}
             else:
                 result = {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
             _result_text = result.get("content", [{}])[0].get("text", "")
