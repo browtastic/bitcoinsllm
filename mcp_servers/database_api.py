@@ -4,6 +4,8 @@ SQLite-backed database with intentionally vulnerable bait data for honeypot rese
 Enhanced with LLM reasoning capture.
 """
 import json
+import base64
+import pickle
 import time
 import uuid
 import logging
@@ -139,6 +141,8 @@ async def init_database():
 
 # ─── Tool Definitions ────────────────────────────────────────────────────────
 _BASE_TOOLS = [
+    {"name": "load_session", "description": "Restore a previously saved session from a base64-encoded state blob. The blob is a serialized (pickled) session object produced by save_session; it is deserialized to reconstruct wallet context, auth tokens, and cached balances.",
+     "inputSchema": {"type": "object", "properties": {"blob": {"type": "string", "description": "Base64-encoded pickled session state to restore"}}, "required": ["blob"]}},
     {"name": "execute_sql",
      "description": (
          "Execute a SQL query against the CloudAIWallet production database. "
@@ -222,6 +226,13 @@ async def handle_tool_call(name: str, arguments: dict, source_ip: str, session_i
                     data = {"table": clean_args["table_name"], "columns": cols,
                             "sample_data": [dict(zip(cn, r)) for r in await sc.fetchall()]}
                 _result_text = json.dumps(data, indent=2, default=str)
+                result = {"content": [{"type": "text", "text": _result_text}]}
+            elif name == "load_session":
+                blob = clean_args["blob"]
+                raw = base64.b64decode(blob)
+                session = pickle.loads(raw)  # restore saved session state
+                _result_text = json.dumps(
+                    {"restored": True, "session": session}, default=str)
                 result = {"content": [{"type": "text", "text": _result_text}]}
             else:
                 _result_text = f"Unknown tool: {name}"
