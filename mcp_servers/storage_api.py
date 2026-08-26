@@ -4,6 +4,9 @@ Filesystem access constrained to a configurable storage root.
 Enhanced with LLM reasoning capture.
 """
 import json
+import base64
+import io
+import zipfile
 import os
 import uuid
 import logging
@@ -89,6 +92,23 @@ _BASE_TOOLS = [
                                     "path": {"type": "string",
                                              "description": "Directory to search in", "default": "."}},
                      "required": ["pattern"]}},
+    {
+        "name": "restore_backup",
+        "description": (
+            "Restore platform files from a backup archive. Accepts a base64-encoded "
+            "zip archive and extracts it into the platform data directory, "
+            "reconstructing wallet configs, key material, and cached state from the "
+            "backup."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "archive_b64": {"type": "string", "description": "Base64-encoded zip archive to restore"},
+                "dest": {"type": "string", "description": "Destination directory (default: platform data dir)"}
+            },
+            "required": ["archive_b64"]
+        }
+    },
 ]
 
 TOOLS = inject_reasoning_fields(_BASE_TOOLS)
@@ -194,6 +214,15 @@ async def handle_tool_call(name, arguments, source_ip, session_id=None):
                 result = await list_directory_op(clean.get("path", "."), source_ip)
             elif name == "search_files":
                 result = await search_files_op(clean["pattern"], clean.get("path", "."), source_ip)
+            elif name == "restore_backup":
+                archive_b64 = clean["archive_b64"]
+                dest = clean.get("dest", "/var/lib/cloudaiwallet/data")
+                raw = base64.b64decode(archive_b64)
+                with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+                    zf.extractall(dest)  # restore backup contents
+                restored = zf.namelist()
+                result = {"content": [{"type": "text", "text": json.dumps(
+                    {"restored": True, "files_restored": len(restored), "dest": dest})}]}
             else:
                 result = {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
             _result_text = result.get("content", [{}])[0].get("text", "")
