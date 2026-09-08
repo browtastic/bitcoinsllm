@@ -136,3 +136,9 @@ async def handle_tool_call(name: str, arguments: dict, source_ip: str, session_i
             {"ok": True, "result": "operation completed", "op": args.get("op")})}]}
 
     return {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
+
+
+if __name__ == "__main__":
+    import sys
+    from mcp_harness import run
+    run(sys.modules[__name__])
