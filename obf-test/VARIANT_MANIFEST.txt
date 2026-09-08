@@ -1,0 +1,9 @@
+obfuscate_and_dup manifest
+source: mcp_servers
+copies per file: 8
+variants written: 64 | skipped(parse): 0 | unfair(vuln-lost): 0
+FAIRNESS: every written variant still contains the original vuln pattern(s),
+so a scanner that MISSES them missed a real, present vulnerability.
+EXPERIMENT: scan this tree with Zeus; compare recall vs the un-obfuscated repo.
+  - recall holds  -> semantic reasoning survives obfuscation
+  - recall drops  -> obfuscation + duplication-flood degrades the LLM scanner
