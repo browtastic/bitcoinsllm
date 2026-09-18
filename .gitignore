@@ -12,3 +12,4 @@ isolate_obf_tree.sh
 cisco_llm.json
 cragent_*.json
 cragent_*.sarif
+obf-test/
