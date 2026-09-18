@@ -310,7 +310,7 @@ const server = http.createServer(async (req, res) => {
       docs: "https://aicryptovault.net/docs",
       registry: "https://aicryptovault.net/mcp"
     },
-    status: "https://aicryptovault.net/api/internal/health-check?token=acv-canary-env-06420f6b60b7"
+    status: "https://aicryptovault.net/api/internal/health-check?token=acv-canary-repo-PLACEHOLDER"
   }, null, 2);
   res.writeHead(404, {"Content-Type": "application/json"}); res.end(hint);
 });
